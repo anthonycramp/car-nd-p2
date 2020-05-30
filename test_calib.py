@@ -1,19 +1,19 @@
-import pickle
 import cv2
-import os
+import proj2
+import sys
 
-# Read in the saved objpoints and imgpoints
-camera_coeffs_pickle_filename = "output_images/camera_coeffs.p"
-if not os.path.exists(camera_coeffs_pickle_filename):
-    print("Run python calibrate.py first")
-    exit(0)
+source_image = "camera_cal/calibration2.jpg"
+dest_image = "output_images/calibration2_undistorted.jpg"
+if len(sys.argv) >= 2:
+    source_image = sys.argv[1]
 
-dist_pickle = pickle.load(open(camera_coeffs_pickle_filename, "rb"))
-camera_matrix = dist_pickle["mtx"]
-distortion_coeffs = dist_pickle["dist"]
+if len(sys.argv) >= 3:
+    dest_image = sys.argv[2]
+
+camera_matrix, distortion_coeffs = \
+    proj2.get_camera_data("camera_cal", "calibration*.jpg", (9,6), "output_images", False)
 
 # Test undistortion on an image
-img = cv2.imread('camera_cal/calibration2.jpg')
-
+img = cv2.imread(source_image)
 undistorted = cv2.undistort(img, camera_matrix, distortion_coeffs, None, camera_matrix)
-cv2.imwrite("output_images/calib_example.jpg", undistorted, None)
+cv2.imwrite(dest_image, undistorted, None)
