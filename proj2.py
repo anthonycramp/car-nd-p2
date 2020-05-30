@@ -69,13 +69,13 @@ def get_camera_data(
     return (mtx, dist)
 
 def abs_sobel_thresh(img, orient='x', sobel_kernel=3, thresh=(0, 255)):
-    # Calculate directional gradient
+    #assert(len(img.shape) == 2)
+    # Calculate sobel gradient
+    sobel = None
     if orient == 'x':
         sobel = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
     elif orient == 'y':
         sobel = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
-    else:
-        sobel = None
 
     abs_sobel = np.absolute(sobel)
     scaled = np.uint8(255*abs_sobel/np.max(abs_sobel))
