@@ -48,11 +48,14 @@ def run():
         write_image(output_dir, source_image_filename, "undist", imgs["undist"])
         write_image(output_dir, source_image_filename, "gray", imgs["gray"])
         write_image(output_dir, source_image_filename, "s", imgs["hls"][:,:,2])
+        write_binary_image(output_dir, source_image_filename, "sbin", imgs["sbin"])
         write_binary_image(output_dir, source_image_filename, "gradx", imgs["gradx"])
         write_binary_image(output_dir, source_image_filename, "grady", imgs["grady"])
         write_binary_image(output_dir, source_image_filename, "gradm", imgs["gradm"])
         write_binary_image(output_dir, source_image_filename, "gradd", imgs["gradd"])
         write_binary_image(output_dir, source_image_filename, "gradc", imgs["gradc"])
+        write_image(output_dir, source_image_filename, "roi", imgs["roi"])
+        write_binary_image(output_dir, source_image_filename, "perspective", imgs["perspective"])
 
 if __name__ == "__main__":
     run()

@@ -110,7 +110,16 @@ def dir_threshold(image, sobel_kernel=3, thresh=(0, np.pi / 2)):
     # Apply threshold
     return img_threshold(dir_sobel, thresh)
 
+
+def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
+    for line in lines:
+        for x1, y1, x2, y2 in line:
+            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
+
+
 def process_image(img, camera_matrix, distortion_coeffs):
+    img_width, img_height = img.shape[1], img.shape[0]
+
     undistorted = cv2.undistort(img, camera_matrix, distortion_coeffs, None, camera_matrix)
 
     gray = cv2.cvtColor(undistorted, cv2.COLOR_BGR2GRAY)
@@ -127,19 +136,56 @@ def process_image(img, camera_matrix, distortion_coeffs):
     # Apply each of the thresholding functions
     gradx = abs_sobel_thresh(s_channel, orient='x', sobel_kernel=ksize, thresh=(40, 120))
     grady = abs_sobel_thresh(s_channel, orient='y', sobel_kernel=ksize, thresh=(30, 90))
-    mag_binary = mag_thresh(s_channel, sobel_kernel=ksize, mag_thresh=(40, 90))
+    mag_binary = mag_thresh(s_channel, sobel_kernel=ksize, mag_thresh=(20, 150))
     dir_binary = dir_threshold(s_channel, sobel_kernel=ksize, thresh=(0.7, 1.3))
+    s_binary = img_threshold(s_channel, (100, 255))
 
     combined = np.zeros_like(dir_binary)
-    combined[((gradx >= 0.8) & (grady <= 0.2)) | ((mag_binary == 1) & (dir_binary == 1))] = 1
+    combined[((mag_binary == 1) & (dir_binary == 1)) | (s_binary == 1)] = 1
+
+    # create region of interest for perspective transform
+    upper_y = int(0.65 * img_height)
+    lower_y = img_height
+    img_width_mid = img_width // 2
+    upper_x_margin = 80
+    lower_x_margin = 470
+
+    src_points = [
+        (img_width_mid - lower_x_margin, lower_y),
+        (img_width_mid - upper_x_margin, upper_y),
+        (img_width_mid + upper_x_margin, upper_y),
+        (img_width_mid + lower_x_margin, lower_y),
+    ]
+    roi_lines = [
+        [src_points[0][0], src_points[0][1], src_points[1][0], src_points[1][1]],
+        [src_points[1][0], src_points[1][1], src_points[2][0], src_points[2][1]],
+        [src_points[2][0], src_points[2][1], src_points[3][0], src_points[3][1]],
+        [src_points[3][0], src_points[3][1], src_points[0][0], src_points[0][1]],
+    ]
+
+    tmp = np.copy(img)
+    draw_lines(tmp, [roi_lines])
+
+    dst_points = [
+        [img_width // 4, img_height],
+        [img_width // 4, 0],
+        [3 * img_width // 4, 0],
+        [3 * img_width // 4, img_height],
+    ]
+
+    M = cv2.getPerspectiveTransform(np.float32(src_points), np.float32(dst_points))
+    perspective = cv2.warpPerspective(combined, M, (img_width, img_height))
 
     return {
         "undist": undistorted,
         "gray": gray,
         "hls": hls,
+        "sbin": s_binary,
         "gradx": gradx,
         "grady": grady,
         "gradm": mag_binary,
         "gradd": dir_binary,
         "gradc": combined,
+        "roi": tmp,
+        "perspective": perspective,
     }
