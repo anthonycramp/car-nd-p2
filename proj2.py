@@ -68,6 +68,12 @@ def get_camera_data(
 
     return (mtx, dist)
 
+def img_threshold(img, thresh=(0,255)):
+    assert(len(img.shape) == 2)
+    binary = np.zeros_like(img)
+    binary[(img >= thresh[0]) & (img <= thresh[1])] = 1
+    return binary
+
 def abs_sobel_thresh(img, orient='x', sobel_kernel=3, thresh=(0, 255)):
     #assert(len(img.shape) == 2)
     # Calculate sobel gradient
@@ -81,10 +87,7 @@ def abs_sobel_thresh(img, orient='x', sobel_kernel=3, thresh=(0, 255)):
     scaled = np.uint8(255*abs_sobel/np.max(abs_sobel))
 
     # Apply threshold
-    grad_binary = np.zeros_like(scaled)
-    grad_binary[(scaled >= thresh[0]) & (scaled <= thresh[1])] = 1
-
-    return grad_binary
+    return img_threshold(scaled, thresh)
 
 def mag_thresh(image, sobel_kernel=3, mag_thresh=(0, 255)):
     # Calculate gradient magnitude
@@ -95,10 +98,7 @@ def mag_thresh(image, sobel_kernel=3, mag_thresh=(0, 255)):
     scaled = np.uint8(255*mag_sobel/np.max(mag_sobel))
 
     # Apply threshold
-    mag_binary = np.zeros_like(scaled)
-    mag_binary[(scaled >= mag_thresh[0]) & (scaled <= mag_thresh[1])] = 1
-
-    return mag_binary
+    return img_threshold(scaled, mag_thresh)
 
 def dir_threshold(image, sobel_kernel=3, thresh=(0, np.pi / 2)):
     # Calculate gradient direction
@@ -108,8 +108,35 @@ def dir_threshold(image, sobel_kernel=3, thresh=(0, np.pi / 2)):
     dir_sobel = np.arctan2(np.absolute(sobely), np.absolute(sobelx))
 
     # Apply threshold
-    dir_binary = np.zeros_like(dir_sobel)
-    dir_binary[(dir_sobel >= thresh[0]) & (dir_sobel <= thresh[1])] = 1
+    return img_threshold(dir_sobel, thresh)
 
-    return dir_binary
+def process_image(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+    hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+    h_channel = hls[:,:,0]
+    l_channel = hls[:,:,1]
+    s_channel = hls[:,:,2]
+
+    # Choose a Sobel kernel size
+    ksize = 5
+
+    # Choose a larger odd number to smooth gradient measurements
+    # Apply each of the thresholding functions
+    gradx = abs_sobel_thresh(s_channel, orient='x', sobel_kernel=ksize, thresh=(40, 120))
+    grady = abs_sobel_thresh(s_channel, orient='y', sobel_kernel=ksize, thresh=(30, 90))
+    mag_binary = mag_thresh(s_channel, sobel_kernel=ksize, mag_thresh=(40, 90))
+    dir_binary = dir_threshold(s_channel, sobel_kernel=ksize, thresh=(0.7, 1.3))
+
+    combined = np.zeros_like(dir_binary)
+    combined[((gradx >= 0.8) & (grady <= 0.2)) | ((mag_binary == 1) & (dir_binary == 1))] = 1
+
+    return {
+        "gray": gray,
+        "hls": hls,
+        "gradx": gradx,
+        "grady": grady,
+        "gradm": mag_binary,
+        "gradd": dir_binary,
+        "gradc": combined,
+    }

@@ -32,26 +32,14 @@ def write_image(output_dir, source_image_filename, dest_filename_suffix, image):
 def write_binary_image(output_dir, source_image_filename, dest_filename_suffix, image):
     write_image(output_dir, source_image_filename, dest_filename_suffix, image * 255)
 
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-write_image(output_dir, source_image_filename, "gray", gray)
+for source_image_filename in test_image_filenames:
+    img = cv2.imread(os.path.join(test_images_dir, source_image_filename))
+    imgs = proj2.process_image(img)
 
-# Choose a Sobel kernel size
-ksize = 5
-
-# Choose a larger odd number to smooth gradient measurements
-# Apply each of the thresholding functions
-gradx = proj2.abs_sobel_thresh(gray, orient='x', sobel_kernel=ksize, thresh=(40, 120))
-write_binary_image(output_dir, source_image_filename, "gradx", gradx)
-
-grady = proj2.abs_sobel_thresh(gray, orient='y', sobel_kernel=ksize, thresh=(30, 90))
-write_binary_image(output_dir, source_image_filename, "grady", grady)
-
-mag_binary = proj2.mag_thresh(gray, sobel_kernel=ksize, mag_thresh=(40, 90))
-write_binary_image(output_dir, source_image_filename, "gradmag", mag_binary)
-
-dir_binary = proj2.dir_threshold(gray, sobel_kernel=ksize, thresh=(0.7, 1.3))
-write_binary_image(output_dir, source_image_filename, "graddir", dir_binary)
-
-combined = np.zeros_like(dir_binary)
-combined[((gradx >= 0.8) & (grady <= 0.2)) | ((mag_binary == 1) & (dir_binary == 1))] = 1
-write_binary_image(output_dir, source_image_filename, "combined", combined)
+    write_image(output_dir, source_image_filename, "gray", imgs["gray"])
+    write_image(output_dir, source_image_filename, "s", imgs["hls"][:,:,2])
+    write_binary_image(output_dir, source_image_filename, "gradx", imgs["gradx"])
+    write_binary_image(output_dir, source_image_filename, "grady", imgs["grady"])
+    write_binary_image(output_dir, source_image_filename, "gradm", imgs["gradm"])
+    write_binary_image(output_dir, source_image_filename, "gradd", imgs["gradd"])
+    write_binary_image(output_dir, source_image_filename, "gradc", imgs["gradc"])
