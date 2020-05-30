@@ -67,3 +67,49 @@ def get_camera_data(
     pickle.dump(dist_pickle, open(camera_calib_pickle_path, "wb"))
 
     return (mtx, dist)
+
+def abs_sobel_thresh(img, orient='x', sobel_kernel=3, thresh=(0, 255)):
+    # Calculate directional gradient
+    if orient == 'x':
+        sobel = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
+    elif orient == 'y':
+        sobel = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
+    else:
+        sobel = None
+
+    abs_sobel = np.absolute(sobel)
+    scaled = np.uint8(255*abs_sobel/np.max(abs_sobel))
+
+    # Apply threshold
+    grad_binary = np.zeros_like(scaled)
+    grad_binary[(scaled >= thresh[0]) & (scaled <= thresh[1])] = 1
+
+    return grad_binary
+
+def mag_thresh(image, sobel_kernel=3, mag_thresh=(0, 255)):
+    # Calculate gradient magnitude
+    sobelx = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
+    sobely = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
+
+    mag_sobel = np.sqrt(sobelx**2 + sobely**2)
+    scaled = np.uint8(255*mag_sobel/np.max(mag_sobel))
+
+    # Apply threshold
+    mag_binary = np.zeros_like(scaled)
+    mag_binary[(scaled >= mag_thresh[0]) & (scaled <= mag_thresh[1])] = 1
+
+    return mag_binary
+
+def dir_threshold(image, sobel_kernel=3, thresh=(0, np.pi / 2)):
+    # Calculate gradient direction
+    sobelx = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=sobel_kernel)
+    sobely = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=sobel_kernel)
+
+    dir_sobel = np.arctan2(np.absolute(sobely), np.absolute(sobelx))
+
+    # Apply threshold
+    dir_binary = np.zeros_like(dir_sobel)
+    dir_binary[(dir_sobel >= thresh[0]) & (dir_sobel <= thresh[1])] = 1
+
+    return dir_binary
+
