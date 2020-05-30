@@ -3,7 +3,6 @@ import cv2
 import os
 
 # Read in the saved objpoints and imgpoints
-#TODO need to check that the camera coefficients pickle exists
 camera_coeffs_pickle_filename = "output_images/camera_coeffs.p"
 if not os.path.exists(camera_coeffs_pickle_filename):
     print("Run python calibrate.py first")
