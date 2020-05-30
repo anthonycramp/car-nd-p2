@@ -4,10 +4,6 @@ import glob
 import numpy as np
 import cv2
 
-camera_calib_pickle_filename = "camera_calib_pickle.p"
-camera_calib_matrix_key = "mtx"
-camera_calib_distortion_coeffs_key = "dist"
-
 def get_camera_data(
         calibration_image_dir,
         calibration_image_filename_glob,
@@ -15,13 +11,17 @@ def get_camera_data(
         output_dir,
         recalibrate
 ):
+    camera_calib_pickle_filename = "camera_calib_pickle.p"
+    camera_calib_matrix_key = "mtx"
+    camera_calib_distortion_coeffs_key = "dist"
+
     camera_calib_pickle_path = os.path.join(output_dir, camera_calib_pickle_filename)
 
     if os.path.exists(camera_calib_pickle_path) and not recalibrate:
         print("Reading calibration parameters from {}".format(camera_calib_pickle_path))
         dist_pickle = pickle.load(open(camera_calib_pickle_path, "rb"))
-        camera_matrix = dist_pickle["mtx"]
-        distortion_coeffs = dist_pickle["dist"]
+        camera_matrix = dist_pickle[camera_calib_matrix_key]
+        distortion_coeffs = dist_pickle[camera_calib_distortion_coeffs_key]
 
         return (camera_matrix, distortion_coeffs)
 
@@ -62,8 +62,8 @@ def get_camera_data(
     # Save the camera calibration result for later use (we won't worry about rvecs / tvecs)
     print("Writing camera calibration parameters to {}.".format(camera_calib_pickle_path))
     dist_pickle = {}
-    dist_pickle["mtx"] = mtx
-    dist_pickle["dist"] = dist
+    dist_pickle[camera_calib_matrix_key] = mtx
+    dist_pickle[camera_calib_distortion_coeffs_key] = dist
     pickle.dump(dist_pickle, open(camera_calib_pickle_path, "wb"))
 
     return (mtx, dist)
