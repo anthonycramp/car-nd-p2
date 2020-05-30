@@ -110,10 +110,12 @@ def dir_threshold(image, sobel_kernel=3, thresh=(0, np.pi / 2)):
     # Apply threshold
     return img_threshold(dir_sobel, thresh)
 
-def process_image(img):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+def process_image(img, camera_matrix, distortion_coeffs):
+    undistorted = cv2.undistort(img, camera_matrix, distortion_coeffs, None, camera_matrix)
 
-    hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+    gray = cv2.cvtColor(undistorted, cv2.COLOR_BGR2GRAY)
+
+    hls = cv2.cvtColor(undistorted, cv2.COLOR_BGR2HLS)
     h_channel = hls[:,:,0]
     l_channel = hls[:,:,1]
     s_channel = hls[:,:,2]
@@ -132,6 +134,7 @@ def process_image(img):
     combined[((gradx >= 0.8) & (grady <= 0.2)) | ((mag_binary == 1) & (dir_binary == 1))] = 1
 
     return {
+        "undist": undistorted,
         "gray": gray,
         "hls": hls,
         "gradx": gradx,
