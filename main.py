@@ -64,6 +64,11 @@ def run():
         )
         print("{} lane line radii ({}, {})".format(source_image_filename, left_curve_radius, right_curve_radius))
 
+        left_curve_radius_real, right_curve_radius_real, car_dist_from_lane_centre = proj2.calculate_real_curve_radius(
+            imgs["perspective"]
+        )
+        print("{} real lane line radii ({}, {}), dist from centre {}".format(source_image_filename, left_curve_radius_real, right_curve_radius_real, car_dist_from_lane_centre))
+
 if __name__ == "__main__":
     run()
 

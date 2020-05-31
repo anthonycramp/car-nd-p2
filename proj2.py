@@ -302,7 +302,6 @@ def find_lane_pixels(binary_warped):
 
     return leftx, lefty, rightx, righty, out_img
 
-
 def fit_polynomial(binary_warped):
     # Find our lane pixels first
     leftx, lefty, rightx, righty, out_img = find_lane_pixels(binary_warped)
@@ -350,3 +349,60 @@ def calculate_curve_radius(left_fit, right_fit, at_y):
     right_curve_radius = ((1 + (2*right_fit[0]*at_y + right_fit[1])**2)**1.5) / np.absolute(2*right_fit[0])
 
     return left_curve_radius, right_curve_radius
+
+def fit_poly_real(binary_warped, ym_per_pix):
+    # Find our lane pixels first
+    leftx, lefty, rightx, righty, _ = find_lane_pixels(binary_warped)
+
+    # first compute in pixel space to get the number of pixels between
+    # left and right llnes
+    left_fit = np.polyfit(lefty, leftx, 2)
+    right_fit = np.polyfit(righty, rightx, 2)
+
+    img_height = binary_warped.shape[0]
+    # Generate x and y values for plotting
+    img_height = binary_warped.shape[0]
+
+    # This creates an array of integers from 0 to img_height-1, i.e.,
+    # len(ploty) == img_height. Then, the x values for each y is computed using
+    # the polynomial parameters computed above
+    ploty = np.linspace(0, img_height - 1, img_height)
+    try:
+        left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
+        right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
+    except TypeError:
+        # Avoids an error if `left` and `right_fit` are still none or incorrect
+        print('The function failed to fit a line!')
+        left_fitx = 1 * ploty ** 2 + 1 * ploty
+        right_fitx = 1 * ploty ** 2 + 1 * ploty
+
+    # Plots the left and right polynomials on the lane lines
+    left_poly_points = np.int32(np.column_stack((left_fitx, ploty)))
+    right_poly_points = np.int32(np.column_stack((right_fitx, ploty)))
+    left_x_at_bottom = left_poly_points[-1][0]
+    right_x_at_bottom = right_poly_points[-1][0]
+    lane_width_in_pixels = right_x_at_bottom - left_x_at_bottom
+
+    xm_per_pix = 3.7 / lane_width_in_pixels # assumes standard lane width of 3.7 m (12 ft)
+
+    left_fit_real = np.polyfit(lefty * ym_per_pix, leftx * xm_per_pix, 2)
+    right_fit_real = np.polyfit(righty * ym_per_pix, rightx * xm_per_pix, 2)
+
+    # calculate position of car in lane
+    lane_width_mid_point = lane_width_in_pixels // 2
+    img_width_mid_point = binary_warped.shape[1] // 2
+    car_dist_from_lane_centre = (img_width_mid_point - lane_width_mid_point) * xm_per_pix
+
+    return left_fit_real, right_fit_real, car_dist_from_lane_centre
+
+def calculate_real_curve_radius(img):
+    img_height = img.shape[0]
+    ym_per_pix = 30. / img_height
+
+    left_fit, right_fit, car_dist_from_lane_centre = fit_poly_real(img, ym_per_pix)
+    at_y = img_height * ym_per_pix
+    left_curve_radius = ((1 + (2*left_fit[0]*at_y + left_fit[1])**2)**1.5) / np.absolute(2*left_fit[0])
+    right_curve_radius = ((1 + (2*right_fit[0]*at_y + right_fit[1])**2)**1.5) / np.absolute(2*right_fit[0])
+
+    return left_curve_radius, right_curve_radius, car_dist_from_lane_centre
+
