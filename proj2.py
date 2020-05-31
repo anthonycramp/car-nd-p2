@@ -338,8 +338,10 @@ def fit_polynomial(binary_warped):
     # Plots the left and right polynomials on the lane lines
     left_poly_points = np.int32(np.column_stack((left_fitx, ploty)))
     right_poly_points = np.int32(np.column_stack((right_fitx, ploty)))
-    cv2.polylines(out_img, [left_poly_points], False, [0,255,255])
-    cv2.polylines(out_img, [right_poly_points], False, [0,255,255])
+    cv2.polylines(out_img, [left_poly_points, right_poly_points], False, [0,255,255])
+
+    # for i in range(img_height):
+    #     cv2.line(out_img, tuple(left_poly_points[i]), tuple(right_poly_points[i]), [0,255,0])
 
     return out_img
 
