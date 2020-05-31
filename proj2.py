@@ -141,7 +141,7 @@ def process_image(img, camera_matrix, distortion_coeffs):
     s_binary = img_threshold(s_channel, (100, 255))
 
     combined = np.zeros_like(dir_binary)
-    combined[((mag_binary == 1) & (dir_binary == 1)) | (s_binary == 1)] = 1
+    combined[(mag_binary == 1) | (s_binary == 1)] = 1
 
     # create region of interest for perspective transform
     upper_y = int(0.65 * img_height)
@@ -189,3 +189,157 @@ def process_image(img, camera_matrix, distortion_coeffs):
         "roi": tmp,
         "perspective": perspective,
     }
+
+
+def find_lane_pixels(binary_warped):
+    # Take a histogram of the bottom half of the image
+    histogram = np.sum(binary_warped[binary_warped.shape[0] // 2:, :], axis=0)
+
+    # Create an output image to draw on and visualize the result
+    out_img = np.dstack((binary_warped, binary_warped, binary_warped))
+
+    # Find the peak of the left and right halves of the histogram
+    # These will be the starting point for the left and right lines
+    midpoint = np.int(histogram.shape[0] // 2)
+    leftx_base = np.argmax(histogram[:midpoint])
+    rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+
+    # HYPERPARAMETERS
+    # Choose the number of sliding windows
+    nwindows = 9
+    # Set the width of the windows +/- margin
+    margin = 100
+    # Set minimum number of pixels found to recenter window
+    minpix = 50
+
+    img_height = binary_warped.shape[0]
+
+    # Set height of windows - based on nwindows above and image shape
+    window_height = np.int(img_height // nwindows)
+
+    # Identify the x and y indices of all nonzero pixels in the image
+    # nonzero is a tuple of two arrays, rows and cols, such that
+    # binary_warped[rows[i], cols[i]] is non zero.
+    nonzero = binary_warped.nonzero()
+    nonzeroy = np.array(nonzero[0]) # rows
+    nonzerox = np.array(nonzero[1]) # cols
+
+    # Current positions to be updated later for each window in nwindows
+    leftx_current = leftx_base
+    rightx_current = rightx_base
+
+    # Create empty lists to receive the row, col indices in binary_warped
+    # corresponding to the left and right lane pixels
+    # binary_warped[nonzeroy[left_lane_inds[i]], nonzerox[left_lane_inds[i]]]
+    # will be a pixel of the left lane line ... similarly for right_lane_inds
+    left_lane_inds = []
+    right_lane_inds = []
+
+    # Step through the windows one by one
+    for window in range(nwindows):
+        # Identify window boundaries in x and y (and right and left)
+        # When window = 0, we have a window at the bottom of the image
+        # win_y_high = img_height and win_y_low = img_height - window_height
+        win_y_low = img_height - (window + 1) * window_height
+        win_y_high = img_height - window * window_height
+
+        # calculate the x values of the window corners
+        win_xleft_low = leftx_current - margin
+        win_xleft_high = leftx_current + margin
+        win_xright_low = rightx_current - margin
+        win_xright_high = rightx_current + margin
+
+        # Draw the windows on the visualization image
+        cv2.rectangle(out_img, (win_xleft_low, win_y_low),
+                      (win_xleft_high, win_y_high), (0, 255, 0), 2)
+        cv2.rectangle(out_img, (win_xright_low, win_y_low),
+                      (win_xright_high, win_y_high), (0, 255, 0), 2)
+
+        ### Identify the nonzero pixels in x and y within the window ###
+        # This is a multi-stepper:
+        # 1) Each conditional (e.g., nonzeroy >= win_y_low) yields a boolean array of True/False
+        # 2) The conjunctions (&) yield an array, A, of True/False such that if index i is True
+        # then binary_warped[nonzeroy[A[i]], nonzerox[A[i]]] is a nonzero pixel within the window
+        # being analysed.
+        # 3) A.nonzero()[0] returns an array, B, containing the indices of those locationas that are True,
+        # i.e., for all i in 0..len(B), binary_warped[nonzeroy[B[i]], nonzerox[B[i]]] is a
+        # nonzero pixel within the window being analysed.). nonzero() collects the indices containing True
+        # as True is evaluated to non-zero (False evaluates to zero).
+        good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) &
+                          (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0]
+        good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) &
+                           (nonzerox >= win_xright_low) & (nonzerox < win_xright_high)).nonzero()[0]
+
+        # Append these indices to the lists
+        left_lane_inds.append(good_left_inds)
+        right_lane_inds.append(good_right_inds)
+
+        # nonzerox[good_..._inds] yields indexes of columns that contain non-zero pixels
+        # within the window of binary_warped. Taking the mean of these values returns the
+        # 'middle' column to use as the centre of the next window.
+        if len(good_left_inds) > minpix:
+            leftx_current = np.int(np.mean(nonzerox[good_left_inds]))
+        if len(good_right_inds) > minpix:
+            rightx_current = np.int(np.mean(nonzerox[good_right_inds]))
+
+    # Concatenate the arrays of indices (previously was a list of lists of pixels)
+    try:
+        left_lane_inds = np.concatenate(left_lane_inds)
+        right_lane_inds = np.concatenate(right_lane_inds)
+    except ValueError:
+        # Avoids an error if the above is not implemented fully
+        pass
+
+    # Extract left and right line pixel positions
+    # for all i in 0..len(left_lane_inds), binary_warped[lefty[i], leftx[i]] is a pixel representing
+    # the left lane line
+    # for all j in 0..len(right_lane_inds), binary_warped[righty[j], rightx[j]] is a pixel representing
+    # the right lane line
+    leftx = nonzerox[left_lane_inds]
+    lefty = nonzeroy[left_lane_inds]
+    rightx = nonzerox[right_lane_inds]
+    righty = nonzeroy[right_lane_inds]
+
+    return leftx, lefty, rightx, righty, out_img
+
+
+def fit_polynomial(binary_warped):
+    # Find our lane pixels first
+    leftx, lefty, rightx, righty, out_img = find_lane_pixels(binary_warped)
+
+    # These fit a second order polynomial Ay**2 + By + C where
+    # A == left_fit[0], B == left_fit[1], C == left_fit[2] (similar for right_fit)
+    # Passing 'y' into polyfit where x would normally go because the lane lines
+    # are almost vertical
+    left_fit = np.polyfit(lefty, leftx, 2)
+    right_fit = np.polyfit(righty, rightx, 2)
+
+    # Generate x and y values for plotting
+    img_height = binary_warped.shape[0]
+
+    # This creates an array of integers from 0 to img_height-1, i.e.,
+    # len(ploty) == img_height. Then, the x values for each y is computed using
+    # the polynomial parameters computed above
+    ploty = np.linspace(0, img_height - 1, img_height)
+    try:
+        left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
+        right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
+    except TypeError:
+        # Avoids an error if `left` and `right_fit` are still none or incorrect
+        print('The function failed to fit a line!')
+        left_fitx = 1 * ploty ** 2 + 1 * ploty
+        right_fitx = 1 * ploty ** 2 + 1 * ploty
+
+    ## Visualization ##
+    # Colours in the pixels identified as belonging to the left and right lanes
+    out_img[lefty, leftx] = [255, 0, 0]
+    out_img[righty, rightx] = [0, 0, 255]
+
+    # Plots the left and right polynomials on the lane lines
+    left_poly_points = np.int32(np.column_stack((left_fitx, ploty)))
+    right_poly_points = np.int32(np.column_stack((right_fitx, ploty)))
+    cv2.polylines(out_img, [left_poly_points], False, [0,255,255])
+    cv2.polylines(out_img, [right_poly_points], False, [0,255,255])
+
+    return out_img
+

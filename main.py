@@ -57,6 +57,9 @@ def run():
         write_image(output_dir, source_image_filename, "roi", imgs["roi"])
         write_binary_image(output_dir, source_image_filename, "perspective", imgs["perspective"])
 
+        lane_lines = proj2.fit_polynomial(imgs["perspective"])
+        write_image(output_dir, source_image_filename, "out", lane_lines)
+
 if __name__ == "__main__":
     run()
 
