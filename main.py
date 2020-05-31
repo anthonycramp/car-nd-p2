@@ -57,8 +57,12 @@ def run():
         write_image(output_dir, source_image_filename, "roi", imgs["roi"])
         write_binary_image(output_dir, source_image_filename, "perspective", imgs["perspective"])
 
-        lane_lines = proj2.fit_polynomial(imgs["perspective"])
+        left_line_polynomial, right_line_polynomial, lane_lines = proj2.fit_polynomial(imgs["perspective"])
         write_image(output_dir, source_image_filename, "out", lane_lines)
+        left_curve_radius, right_curve_radius = proj2.calculate_curve_radius(
+            left_line_polynomial, right_line_polynomial, img.shape[0]
+        )
+        print("{} lane line radii ({}, {})".format(source_image_filename, left_curve_radius, right_curve_radius))
 
 if __name__ == "__main__":
     run()

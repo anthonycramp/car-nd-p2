@@ -343,5 +343,10 @@ def fit_polynomial(binary_warped):
     # for i in range(img_height):
     #     cv2.line(out_img, tuple(left_poly_points[i]), tuple(right_poly_points[i]), [0,255,0])
 
-    return out_img
+    return left_fit, right_fit, out_img
 
+def calculate_curve_radius(left_fit, right_fit, at_y):
+    left_curve_radius = ((1 + (2*left_fit[0]*at_y + left_fit[1])**2)**1.5) / np.absolute(2*left_fit[0])
+    right_curve_radius = ((1 + (2*right_fit[0]*at_y + right_fit[1])**2)**1.5) / np.absolute(2*right_fit[0])
+
+    return left_curve_radius, right_curve_radius
