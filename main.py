@@ -40,7 +40,7 @@ def run():
         False
     )
 
-    for source_image_filename in test_image_filenames[:1]:
+    for source_image_filename in test_image_filenames:
         img = cv2.imread(os.path.join(test_images_dir, source_image_filename))
         imgs = proj2.process_image(img, camera_matrix, distortion_coeffs)
 

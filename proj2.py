@@ -144,17 +144,19 @@ def process_image(img, camera_matrix, distortion_coeffs):
     combined[(mag_binary == 1) | (s_binary == 1)] = 1
 
     # create region of interest for perspective transform
-    upper_y = int(0.65 * img_height)
+    upper_y = int(0.63 * img_height)
     lower_y = img_height
     img_width_mid = img_width // 2
-    upper_x_margin = 80
-    lower_x_margin = 470
+    lower_x_left = img_width_mid - 440
+    lower_x_right = img_width_mid + 470
+    upper_x_left = img_width_mid - 50
+    upper_x_right = img_width_mid + 50
 
     src_points = [
-        (img_width_mid - lower_x_margin, lower_y),
-        (img_width_mid - upper_x_margin, upper_y),
-        (img_width_mid + upper_x_margin, upper_y),
-        (img_width_mid + lower_x_margin, lower_y),
+        (lower_x_left, lower_y),
+        (upper_x_left, upper_y),
+        (upper_x_right, upper_y),
+        (lower_x_right, lower_y),
     ]
     roi_lines = [
         [src_points[0][0], src_points[0][1], src_points[1][0], src_points[1][1]],
@@ -429,7 +431,9 @@ def draw_lane(left_line_poly, right_line_poly, Minv, img_height, img_width):
     for i in range(img_height):
         cv2.line(layer, tuple(left_poly_points[i]), tuple(right_poly_points[i]), [0,255,0])
 
-    cv2.polylines(layer, [left_poly_points, right_poly_points], False, [0,255,255], thickness=5)
+    cv2.polylines(layer, [left_poly_points], False, [255,0,0], thickness=9)
+    cv2.polylines(layer, [right_poly_points], False, [0,0,255], thickness=9)
+
     out = cv2.warpPerspective(layer, Minv, (img_width, img_height), flags=cv2.INTER_LINEAR)
 
     return np.uint8(out)
