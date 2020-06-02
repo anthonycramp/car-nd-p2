@@ -179,6 +179,29 @@ def process_image(img, camera_matrix, distortion_coeffs):
     Minv = cv2.getPerspectiveTransform(np.float32(dst_points), np.float32(src_points))
     perspective = cv2.warpPerspective(combined, M, (img_width, img_height), flags=cv2.INTER_LINEAR)
 
+    left_line_polynomial, right_line_polynomial, lane_lines = fit_polynomial(perspective)
+    left_curve_radius, right_curve_radius = calculate_curve_radius(
+        left_line_polynomial, right_line_polynomial, img.shape[0]
+    )
+    # print("lane line radii ({}, {})".format(left_curve_radius, right_curve_radius))
+
+    left_curve_radius_real, right_curve_radius_real, car_dist_from_lane_centre = calculate_real_curve_radius(
+        perspective
+    )
+    # print("real lane line radii ({}, {}), dist from centre {}".format(left_curve_radius_real,
+    #                                                                      right_curve_radius_real,
+    #                                                                      car_dist_from_lane_centre))
+
+    layer = draw_lane(
+        left_line_polynomial,
+        right_line_polynomial,
+        Minv,
+        img.shape[0],
+        img.shape[1]
+    )
+
+    final = cv2.addWeighted(undistorted, 1.0, layer, 0.3, 0.0)
+
     return {
         "undist": undistorted,
         "gray": gray,
@@ -191,7 +214,9 @@ def process_image(img, camera_matrix, distortion_coeffs):
         "gradc": combined,
         "roi": tmp,
         "perspective": perspective,
-        "Minv": Minv,
+        "lane_lines": lane_lines,
+        "layer": layer,
+        "final": final,
     }
 
 

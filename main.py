@@ -56,30 +56,9 @@ def run():
         write_binary_image(output_dir, source_image_filename, "gradc", imgs["gradc"])
         write_image(output_dir, source_image_filename, "roi", imgs["roi"])
         write_binary_image(output_dir, source_image_filename, "perspective", imgs["perspective"])
-
-        left_line_polynomial, right_line_polynomial, lane_lines = proj2.fit_polynomial(imgs["perspective"])
-        write_image(output_dir, source_image_filename, "out", lane_lines)
-        left_curve_radius, right_curve_radius = proj2.calculate_curve_radius(
-            left_line_polynomial, right_line_polynomial, img.shape[0]
-        )
-        print("{} lane line radii ({}, {})".format(source_image_filename, left_curve_radius, right_curve_radius))
-
-        left_curve_radius_real, right_curve_radius_real, car_dist_from_lane_centre = proj2.calculate_real_curve_radius(
-            imgs["perspective"]
-        )
-        print("{} real lane line radii ({}, {}), dist from centre {}".format(source_image_filename, left_curve_radius_real, right_curve_radius_real, car_dist_from_lane_centre))
-
-        layer = proj2.draw_lane(
-            left_line_polynomial,
-            right_line_polynomial,
-            imgs["Minv"],
-            img.shape[0],
-            img.shape[1]
-        )
-        write_image(output_dir, source_image_filename, "layer", layer)
-
-        final = cv2.addWeighted(imgs["undist"], 1.0, layer, 0.3, 0.0)
-        write_image(output_dir, source_image_filename, "final", final)
+        write_image(output_dir, source_image_filename, "lane_lines", imgs["lane_lines"])
+        write_image(output_dir, source_image_filename, "layer", imgs["layer"])
+        write_image(output_dir, source_image_filename, "final", imgs["final"])
 
 if __name__ == "__main__":
     run()
