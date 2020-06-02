@@ -174,7 +174,8 @@ def process_image(img, camera_matrix, distortion_coeffs):
     ]
 
     M = cv2.getPerspectiveTransform(np.float32(src_points), np.float32(dst_points))
-    perspective = cv2.warpPerspective(combined, M, (img_width, img_height))
+    Minv = cv2.getPerspectiveTransform(np.float32(dst_points), np.float32(src_points))
+    perspective = cv2.warpPerspective(combined, M, (img_width, img_height), flags=cv2.INTER_LINEAR)
 
     return {
         "undist": undistorted,
@@ -188,6 +189,7 @@ def process_image(img, camera_matrix, distortion_coeffs):
         "gradc": combined,
         "roi": tmp,
         "perspective": perspective,
+        "Minv": Minv,
     }
 
 
@@ -406,3 +408,28 @@ def calculate_real_curve_radius(img):
 
     return left_curve_radius, right_curve_radius, car_dist_from_lane_centre
 
+def draw_lane(left_line_poly, right_line_poly, Minv, img_height, img_width):
+    blank = np.zeros((img_height, img_width))
+    layer = np.dstack((blank, blank, blank))
+
+    ploty = np.linspace(0, img_height - 1, img_height)
+    try:
+        left_fitx = left_line_poly[0] * ploty ** 2 + left_line_poly[1] * ploty + left_line_poly[2]
+        right_fitx = right_line_poly[0] * ploty ** 2 + right_line_poly[1] * ploty + right_line_poly[2]
+    except TypeError:
+        # Avoids an error if `left` and `right_fit` are still none or incorrect
+        print('The function failed to fit a line!')
+        left_fitx = 1 * ploty ** 2 + 1 * ploty
+        right_fitx = 1 * ploty ** 2 + 1 * ploty
+
+    # Plots the left and right polynomials on the lane lines
+    left_poly_points = np.int32(np.column_stack((left_fitx, ploty)))
+    right_poly_points = np.int32(np.column_stack((right_fitx, ploty)))
+
+    for i in range(img_height):
+        cv2.line(layer, tuple(left_poly_points[i]), tuple(right_poly_points[i]), [0,255,0])
+
+    cv2.polylines(layer, [left_poly_points, right_poly_points], False, [0,255,255], thickness=5)
+    out = cv2.warpPerspective(layer, Minv, (img_width, img_height), flags=cv2.INTER_LINEAR)
+
+    return np.uint8(out)

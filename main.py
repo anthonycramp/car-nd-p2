@@ -40,7 +40,7 @@ def run():
         False
     )
 
-    for source_image_filename in test_image_filenames:
+    for source_image_filename in test_image_filenames[:1]:
         img = cv2.imread(os.path.join(test_images_dir, source_image_filename))
         imgs = proj2.process_image(img, camera_matrix, distortion_coeffs)
 
@@ -68,6 +68,18 @@ def run():
             imgs["perspective"]
         )
         print("{} real lane line radii ({}, {}), dist from centre {}".format(source_image_filename, left_curve_radius_real, right_curve_radius_real, car_dist_from_lane_centre))
+
+        layer = proj2.draw_lane(
+            left_line_polynomial,
+            right_line_polynomial,
+            imgs["Minv"],
+            img.shape[0],
+            img.shape[1]
+        )
+        write_image(output_dir, source_image_filename, "layer", layer)
+
+        final = cv2.addWeighted(imgs["undist"], 1.0, layer, 0.3, 0.0)
+        write_image(output_dir, source_image_filename, "final", final)
 
 if __name__ == "__main__":
     run()
