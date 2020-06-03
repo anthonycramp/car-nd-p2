@@ -40,25 +40,50 @@ def run():
         False
     )
 
-    for source_image_filename in test_image_filenames:
-        img = cv2.imread(os.path.join(test_images_dir, source_image_filename))
-        imgs = proj2.process_image(img, camera_matrix, distortion_coeffs)
+    # for source_image_filename in test_image_filenames:
+    #     img = cv2.imread(os.path.join(test_images_dir, source_image_filename))
+    #     imgs = proj2.process_image(img, camera_matrix, distortion_coeffs)
+    #
+    #     write_image(output_dir, source_image_filename, "", img)
+    #     write_image(output_dir, source_image_filename, "undist", imgs["undist"])
+    #     write_image(output_dir, source_image_filename, "gray", imgs["gray"])
+    #     write_image(output_dir, source_image_filename, "s", imgs["hls"][:,:,2])
+    #     write_binary_image(output_dir, source_image_filename, "sbin", imgs["sbin"])
+    #     write_binary_image(output_dir, source_image_filename, "gradx", imgs["gradx"])
+    #     write_binary_image(output_dir, source_image_filename, "grady", imgs["grady"])
+    #     write_binary_image(output_dir, source_image_filename, "gradm", imgs["gradm"])
+    #     write_binary_image(output_dir, source_image_filename, "gradd", imgs["gradd"])
+    #     write_binary_image(output_dir, source_image_filename, "gradc", imgs["gradc"])
+    #     write_image(output_dir, source_image_filename, "roi", imgs["roi"])
+    #     write_binary_image(output_dir, source_image_filename, "perspective", imgs["perspective"])
+    #     write_image(output_dir, source_image_filename, "lane_lines", imgs["lane_lines"])
+    #     write_image(output_dir, source_image_filename, "layer", imgs["layer"])
+    #     write_image(output_dir, source_image_filename, "final", imgs["final"])
 
-        write_image(output_dir, source_image_filename, "", img)
-        write_image(output_dir, source_image_filename, "undist", imgs["undist"])
-        write_image(output_dir, source_image_filename, "gray", imgs["gray"])
-        write_image(output_dir, source_image_filename, "s", imgs["hls"][:,:,2])
-        write_binary_image(output_dir, source_image_filename, "sbin", imgs["sbin"])
-        write_binary_image(output_dir, source_image_filename, "gradx", imgs["gradx"])
-        write_binary_image(output_dir, source_image_filename, "grady", imgs["grady"])
-        write_binary_image(output_dir, source_image_filename, "gradm", imgs["gradm"])
-        write_binary_image(output_dir, source_image_filename, "gradd", imgs["gradd"])
-        write_binary_image(output_dir, source_image_filename, "gradc", imgs["gradc"])
-        write_image(output_dir, source_image_filename, "roi", imgs["roi"])
-        write_binary_image(output_dir, source_image_filename, "perspective", imgs["perspective"])
-        write_image(output_dir, source_image_filename, "lane_lines", imgs["lane_lines"])
-        write_image(output_dir, source_image_filename, "layer", imgs["layer"])
-        write_image(output_dir, source_image_filename, "final", imgs["final"])
+    video_filename = "harder_challenge_video.mp4"
+    cap = cv2.VideoCapture(video_filename)
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+
+    counter = 0
+    out = cv2.VideoWriter(os.path.join(output_dir, video_filename),
+                          fourcc, fps, (frame_width, frame_height))
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if ret == True:
+            frame_out = proj2.process_image(frame, camera_matrix, distortion_coeffs)
+            out.write(frame_out["final"])
+        else:
+            break
+
+        counter += 1
+        if (counter % fps) == 0:
+            print("{} seconds of video processed".format(counter // fps))
+
+    cap.release()
+    out.release()
 
 if __name__ == "__main__":
     run()
